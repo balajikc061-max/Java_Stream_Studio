@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -23,7 +22,6 @@ import {
   Cpu,
   ShieldCheck,
   Zap,
-  ArrowRight,
   Tv,
   Settings
 } from 'lucide-react';
@@ -63,18 +61,15 @@ const ApiKeyGuard = ({ onProceed }: { onProceed: () => void }) => {
       if (window.aistudio) {
         const selected = await window.aistudio.hasSelectedApiKey();
         setHasKey(selected);
+        if (selected) onProceed();
+      } else {
+        // In some environments, we might proceed directly if process.env.API_KEY is present
+        if (process.env.API_KEY) onProceed();
       }
       setChecking(false);
     };
     checkKey();
-  }, []);
-
-  // Use useEffect to handle state updates in the parent component
-  useEffect(() => {
-    if (hasKey) {
-      onProceed();
-    }
-  }, [hasKey, onProceed]);
+  }, [onProceed]);
 
   const handleSelectKey = async () => {
     if (window.aistudio) {
@@ -102,9 +97,9 @@ const ApiKeyGuard = ({ onProceed }: { onProceed: () => void }) => {
         <div className="w-20 h-20 bg-orange-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-orange-500/20">
           <ShieldCheck className="w-10 h-10 text-orange-500" />
         </div>
-        <h2 className="text-3xl font-black text-white mb-4 tracking-tighter italic uppercase italic leading-none">Studio Setup</h2>
+        <h2 className="text-3xl font-black text-white mb-4 tracking-tighter italic uppercase leading-none">Studio Setup</h2>
         <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-          Your <strong>Pro API Key</strong> is required to generate cinematic Java videos and high-quality thumbnails.
+          Connect your <strong>Pro API Key</strong> to unlock cinematic Java video generation and 4K production assets.
         </p>
         
         <div className="space-y-4">
@@ -122,7 +117,7 @@ const ApiKeyGuard = ({ onProceed }: { onProceed: () => void }) => {
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-orange-400 transition-colors uppercase tracking-[0.2em]"
           >
-            Manage Pro Project <ExternalLink className="w-3 h-3" />
+            Manage Billing <ExternalLink className="w-3 h-3" />
           </a>
         </div>
       </div>
@@ -139,7 +134,7 @@ const Header = ({ onSwitchKey }: { onSwitchKey: () => void }) => (
         </div>
         <div className="flex flex-col">
           <span className="font-black text-xl tracking-tighter text-white italic leading-none uppercase">Java<span className="text-orange-600">Studio</span></span>
-          <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mt-1">Production Hub</span>
+          <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mt-1">Vercel Production</span>
         </div>
       </div>
       <button 
@@ -203,11 +198,9 @@ function AppContent() {
     setThumbnail(null);
     
     try {
-      // Create a new GoogleGenAI instance right before making an API call to ensure it always uses the most up-to-date API key
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `Act as an expert Java YouTuber like 'Amigoscode' or 'Java Brains'. Create a comprehensive high-production video blueprint.
-      Topic: "${input}"
-      Focus: Professional Java engineering, modern idioms (Java 21+), and high-retention script writing.
+      const prompt = `Act as an expert Java YouTuber like 'Amigoscode'. Create a comprehensive high-production video blueprint for: "${input}". 
+      Focus on Java 21+ features, clean architecture, and YouTube engagement.
       Return JSON: {
         title: string,
         hook: string,
@@ -266,12 +259,12 @@ function AppContent() {
     } catch (error: any) {
       console.error("Blueprint Error:", error);
       if (isAuthOrQuotaError(error)) {
-        setErrorMsg("Quota Error (429) or Access Denied. Ensure your Vercel API_KEY is correct or re-link via Studio Config.");
+        setErrorMsg("API Access Issue. Please ensure your Vercel API_KEY environment variable is set.");
         if (JSON.stringify(error).includes("requested entity was not found")) {
             window.aistudio?.openSelectKey();
         }
       } else {
-        setErrorMsg("The production engine encountered an error. Please try a different Java topic.");
+        setErrorMsg("Production engine error. Try refining your topic.");
       }
     } finally {
       setLoading(false);
@@ -282,11 +275,10 @@ function AppContent() {
     if (!blueprint?.title) return;
     setThumbnailLoading(true);
     try {
-      // Create a new GoogleGenAI instance right before making an API call to ensure it always uses the most up-to-date API key
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
-        contents: { parts: [{ text: `A viral high-energy YouTube thumbnail for a Java video: "${blueprint.title}". Visuals: Glowing Java logo, floating syntax, developer hands at a high-end keyboard, 3D neon gradients, professional depth of field, 4K.` }] },
+        contents: { parts: [{ text: `A 4K viral YouTube thumbnail for a professional Java video: "${blueprint.title}". Visuals: Glowing Java 21 coffee cup, syntax highlighting on curved monitors, modern studio background, high energy, neon accents.` }] },
         config: { imageConfig: { aspectRatio: "16:9", imageSize: "1K" } }
       });
 
@@ -309,9 +301,8 @@ function AppContent() {
     setVideoStatus('Initializing Cinematic Engine...');
     setVideoUrl(null);
     try {
-      // Create a new GoogleGenAI instance right before making an API call to ensure it always uses the most up-to-date API key
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const videoPrompt = `Cinematic 4K intro for a Java tutorial. Title: "${blueprint.title}". High-end tech vibe, camera pans over clean Java code on a vertical monitor in a futuristic studio. Action: ${blueprint.hook}`;
+      const videoPrompt = `Cinematic intro for a Java programming channel. Title: "${blueprint.title}". High-end developer studio vibe, camera moves through glowing code strings. Action: ${blueprint.hook}`;
       
       let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
@@ -321,8 +312,7 @@ function AppContent() {
 
       while (!operation.done) {
         await new Promise(resolve => setTimeout(resolve, 10000));
-        setVideoStatus('Synthesizing frames...');
-        // Create a new GoogleGenAI instance for polling to ensure fresh API key context
+        setVideoStatus('Rendering cinematic assets...');
         const pollAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
         operation = await pollAi.operations.getVideosOperation({ operation: operation });
       }
@@ -351,14 +341,14 @@ function AppContent() {
             Java <span className="text-orange-600">Pro</span> Studio
           </h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto relative z-10 font-medium">
-            Generate viral scripts, code assets, and cinematic intros for your Java channel.
+            Elite YouTube production suite for Java creators. Powered by Pro AI.
           </p>
         </section>
 
         <div className="glass-panel rounded-[3rem] p-10 shadow-2xl mb-12 border border-white/5">
           <textarea
             className="w-full bg-slate-950/50 border border-white/10 rounded-2xl p-8 text-slate-200 focus:ring-2 focus:ring-orange-600 focus:outline-none min-h-[160px] mb-8 transition-all placeholder:text-slate-700 font-mono text-base shadow-inner"
-            placeholder="Topic: (e.g., 'Modern Java 21 Records vs Classes', 'Spring Boot 3 WebFlux Architecture'...)"
+            placeholder="Describe your video topic... (e.g., 'Mastering Spring Boot 3 Security Filters')"
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
@@ -367,7 +357,7 @@ function AppContent() {
             <div className="mb-8 p-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-4 text-red-400 text-sm animate-in fade-in slide-in-from-top-2">
               <AlertCircle className="w-6 h-6 flex-shrink-0" />
               <div className="flex-1">
-                 <p className="font-black uppercase tracking-widest text-[10px] mb-1">Alert</p>
+                 <p className="font-black uppercase tracking-widest text-[10px] mb-1">Production Alert</p>
                  <p className="font-bold">{errorMsg}</p>
               </div>
               <button onClick={generateBlueprint} className="p-2 hover:bg-red-500/20 rounded-full transition-colors">
@@ -380,11 +370,11 @@ function AppContent() {
             <div className="flex gap-4">
               <div className="flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-2xl border border-white/5">
                 <Zap className="w-4 h-4 text-yellow-500" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ultra Performance</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Low Latency</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-2xl border border-white/5">
                 <Tv className="w-4 h-4 text-orange-500" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">YouTube Optimized</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">4K Assets</span>
               </div>
             </div>
             
@@ -411,7 +401,7 @@ function AppContent() {
                     <div>
                       <h2 className="text-3xl font-black text-white leading-tight uppercase italic tracking-tighter">{blueprint.title}</h2>
                       <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2 flex items-center gap-2">
-                        <CheckCircle2 className="w-3 h-3 text-green-500" /> Content Engine Ready
+                        <CheckCircle2 className="w-3 h-3 text-green-500" /> Blueprint Finalized
                       </p>
                     </div>
                   </div>
@@ -421,7 +411,7 @@ function AppContent() {
                     className="flex items-center gap-3 px-10 py-4 bg-slate-900 hover:bg-orange-600 border border-white/10 rounded-[2rem] text-[11px] font-black text-white transition-all uppercase tracking-widest shadow-lg"
                   >
                     {videoLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Video className="w-5 h-5" />}
-                    {videoUrl ? 'Regenerate Video' : 'Generate Intro'}
+                    {videoUrl ? 'Render Again' : 'Render Intro'}
                   </button>
                 </div>
                 
@@ -432,7 +422,7 @@ function AppContent() {
                         <div className="aspect-video flex flex-col items-center justify-center p-16 text-center space-y-8 bg-gradient-to-br from-slate-950 to-slate-900">
                           <Loader2 className="w-16 h-16 text-orange-600 animate-spin" />
                           <div className="space-y-3">
-                            <p className="font-black text-3xl text-white uppercase italic tracking-tighter">Rendering Engine Active</p>
+                            <p className="font-black text-3xl text-white uppercase italic tracking-tighter">Pro Production Engine</p>
                             <p className="text-[10px] text-slate-500 font-mono tracking-[0.3em] uppercase">{videoStatus}</p>
                           </div>
                         </div>
@@ -454,14 +444,14 @@ function AppContent() {
                       <div className="absolute -top-4 -left-4 p-4 bg-orange-600 rounded-2xl shadow-xl shadow-orange-600/20">
                         <Layers className="text-white w-6 h-6" />
                       </div>
-                      <h3 className="text-[11px] font-black text-slate-500 mb-6 uppercase tracking-[0.3em] ml-8">Core Narrative</h3>
+                      <h3 className="text-[11px] font-black text-slate-500 mb-6 uppercase tracking-[0.3em] ml-8">Core Concept</h3>
                       <p className="text-slate-200 leading-relaxed text-lg font-medium italic mb-10">"{blueprint.narrative}"</p>
                       <CodeBlock code={blueprint.codeSnippet} />
                     </div>
 
                     <div>
                       <h3 className="text-[11px] font-black text-slate-500 mb-10 flex items-center gap-3 uppercase tracking-[0.3em]">
-                        <Terminal className="w-5 h-5 text-orange-500" /> Production Script
+                        <Terminal className="w-5 h-5 text-orange-500" /> Full Script
                       </h3>
                       <div className="space-y-8">
                         {blueprint.script.map((seg: any, i: number) => (
@@ -487,7 +477,7 @@ function AppContent() {
               <div className="glass-panel rounded-[4rem] overflow-hidden shadow-2xl border border-white/5">
                 <div className="p-8 border-b border-white/5 bg-slate-800/20 flex items-center justify-between">
                   <h2 className="text-[11px] font-black text-white flex items-center gap-4 uppercase tracking-[0.3em]">
-                    <ImageIcon className="w-6 h-6 text-orange-500" /> Pro Thumbnail
+                    <ImageIcon className="w-6 h-6 text-orange-500" /> YouTube Art
                   </h2>
                   <button onClick={generateThumbnail} disabled={thumbnailLoading} className="p-3 hover:bg-slate-800 rounded-2xl transition-all text-slate-400">
                     {thumbnailLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCcw className="w-6 h-6" />}
@@ -499,7 +489,7 @@ function AppContent() {
                   ) : (
                     <div className="aspect-video bg-slate-950/50 border-2 border-dashed border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-800 group hover:border-orange-500/30 transition-all">
                       <ImageIcon className="w-16 h-16 opacity-5 mb-3 group-hover:scale-110 transition-transform" />
-                      <p className="text-[11px] font-black uppercase tracking-widest opacity-20">Awaiting Pro Key</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest opacity-20">Awaiting Generation</p>
                     </div>
                   )}
                 </div>
@@ -507,15 +497,15 @@ function AppContent() {
 
               <div className="glass-panel rounded-[4rem] overflow-hidden shadow-2xl p-10 border border-white/5">
                 <h2 className="text-[11px] font-black text-white mb-10 flex items-center gap-4 uppercase tracking-[0.3em]">
-                  <Music className="text-orange-500 w-6 h-6" /> Soundscape
+                  <Music className="text-orange-500 w-6 h-6" /> Production Audio
                 </h2>
                 <div className="space-y-8">
                   <div className="p-6 bg-slate-950/50 rounded-[2rem] border border-white/5 shadow-inner">
-                    <span className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 block">Background</span>
+                    <span className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 block">Music Style</span>
                     <p className="text-sm text-slate-300 font-medium leading-relaxed">{blueprint.atmosphere.music}</p>
                   </div>
                   <div className="p-6 bg-slate-950/50 rounded-[2rem] border border-white/5 shadow-inner">
-                    <span className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 block">Digital Effects</span>
+                    <span className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 block">FX Layering</span>
                     <p className="text-sm text-slate-300 font-medium leading-relaxed">{blueprint.atmosphere.vfx}</p>
                   </div>
                 </div>
@@ -523,7 +513,7 @@ function AppContent() {
 
               <div className="glass-panel rounded-[4rem] overflow-hidden shadow-2xl p-10 border border-white/5">
                 <h2 className="text-[11px] font-black text-white mb-10 flex items-center gap-4 uppercase tracking-[0.3em]">
-                  <Youtube className="text-orange-500 w-6 h-6" /> SEO Optimizer
+                  <Youtube className="text-orange-500 w-6 h-6" /> SEO Metadata
                 </h2>
                 <div className="space-y-6">
                   <div className="flex flex-wrap gap-2.5">
@@ -532,7 +522,7 @@ function AppContent() {
                     ))}
                   </div>
                   <div className="p-6 bg-slate-950/50 rounded-[2rem] border border-white/5">
-                    <span className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 block">YouTube Description</span>
+                    <span className="text-[10px] uppercase font-black text-slate-600 tracking-[0.3em] mb-3 block">Video Description</span>
                     <p className="text-xs text-slate-400 font-medium leading-relaxed">{blueprint.seo.description}</p>
                   </div>
                 </div>
@@ -550,7 +540,7 @@ function AppContent() {
       </main>
 
       <footer className="py-24 border-t border-white/5 text-center bg-[#020617] relative overflow-hidden">
-        <p className="text-slate-800 text-[11px] font-black uppercase tracking-[0.8em] mb-4 italic">Java Production Studio v4.0</p>
+        <p className="text-slate-800 text-[11px] font-black uppercase tracking-[0.8em] mb-4 italic">Java Production Studio v4.1 Professional</p>
       </footer>
     </div>
   );
@@ -558,7 +548,9 @@ function AppContent() {
 
 function App() {
   const [showApp, setShowApp] = useState(false);
-  if (!showApp) return <ApiKeyGuard onProceed={() => setShowApp(true)} />;
+  const proceed = () => setShowApp(true);
+  
+  if (!showApp) return <ApiKeyGuard onProceed={proceed} />;
   return <AppContent />;
 }
 
